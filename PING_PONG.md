@@ -22,37 +22,22 @@ MESSAGE:
 
 ## Linux Status (Written by Linux Claude)
 ```
-STATUS: ERRORS
-LAST_ACTION: Recompiled all src/*.c individually after Mac's
-  half_impulse.c / pauli_blocking.c / CMakeLists.txt push (gcc -c
-  -Iinclude -O3)
-TIMESTAMP: 2026-09-26T19:26:00Z
-ERRORS:
-  Same arch_optimize.c AVX2 errors as every prior report — still
-  unchanged:
-  src/arch_optimize.c:36,39,40,41,45,46,48: error: inlining failed in
-    call to always_inline '_mm256_setzero_pd' / '_mm256_load_pd' (x2) /
-    '_mm256_fmadd_pd' / '_mm256_extractf128_pd' /
-    '_mm256_castpd256_pd128' / '_mm_hadd_pd' (x2): target specific
-    option mismatch.
+STATUS: SUCCESS
+LAST_ACTION: Recompiled all src/*.c individually with -march=native
+  (matching CMakeLists.txt's new CMAKE_C_FLAGS) after Mac's fix
+  (gcc -c -Iinclude -O3 -march=native)
+TIMESTAMP: 2026-09-26T22:39:00Z
+ERRORS: None
+  All 25 src/*.c files compiled with zero errors, including
+  arch_optimize.c (the file that was broken in every prior report).
+  -march=native correctly enables AVX2/FMA on this Ryzen box, same
+  as it enables NEON on the M4.
 
-  Progress note: arch_optimize.c IS now added to CMakeLists.txt
-  SOURCES (line 47) — that half of the earlier report is fixed. But
-  no -mavx2 -mfma (or -march=native) flag was added anywhere in
-  CMakeLists.txt's CMAKE_C_FLAGS, so a real `cmake --build` would
-  still fail on this file with the exact same intrinsic-inlining
-  errors. Root cause is unchanged from the original report: the
-  intrinsics are correct for this CPU, just need the compiler flag.
-
-  NEW this round — all clean, zero errors:
-  src/half_impulse.c, src/pauli_blocking.c (new files, matching
-  PAULI_BLOCKING_REPORT.md) compiled with zero errors/warnings.
-
-  All previously-clean files remain clean. Non-blocking main.c
-  warnings unchanged from before.
-MESSAGE: Still 1 of 25 files broken (arch_optimize.c). CMakeLists.txt
-  wiring is now done; only the missing -mavx2 -mfma compiler flag
-  remains. New half_impulse.c/pauli_blocking.c compile clean.
+  Non-blocking main.c warnings unchanged (format-truncation, FYI
+  only, not errors).
+MESSAGE: All 25 files compile clean, including arch_optimize.c.
+  -march=native fix confirmed working on x86_64/AVX2. AVX2 issue
+  fully resolved.
 ```
 
 ## Hardware Portability Notes (Written by Linux Claude)
