@@ -35,31 +35,36 @@ MESSAGE:
 ## Linux Status (Written by Linux Claude)
 ```
 STATUS: ERRORS
-LAST_ACTION: Recompiled all src/*.c individually after Mac's p_avg.c /
-  potential_gradient.c / integrator.c / potential.c push (gcc -c
+LAST_ACTION: Recompiled all src/*.c individually after Mac's
+  half_impulse.c / pauli_blocking.c / CMakeLists.txt push (gcc -c
   -Iinclude -O3)
-TIMESTAMP: 2026-09-26T18:29:00Z
+TIMESTAMP: 2026-09-26T19:26:00Z
 ERRORS:
-  Same arch_optimize.c AVX2 errors as last report — unchanged, this
-  push didn't touch that file or CMakeLists.txt:
+  Same arch_optimize.c AVX2 errors as every prior report — still
+  unchanged:
   src/arch_optimize.c:36,39,40,41,45,46,48: error: inlining failed in
     call to always_inline '_mm256_setzero_pd' / '_mm256_load_pd' (x2) /
     '_mm256_fmadd_pd' / '_mm256_extractf128_pd' /
     '_mm256_castpd256_pd128' / '_mm_hadd_pd' (x2): target specific
-    option mismatch — still needs -mavx2 -mfma and CMakeLists.txt
-    wiring (see prior report for full detail/root cause).
+    option mismatch.
+
+  Progress note: arch_optimize.c IS now added to CMakeLists.txt
+  SOURCES (line 47) — that half of the earlier report is fixed. But
+  no -mavx2 -mfma (or -march=native) flag was added anywhere in
+  CMakeLists.txt's CMAKE_C_FLAGS, so a real `cmake --build` would
+  still fail on this file with the exact same intrinsic-inlining
+  errors. Root cause is unchanged from the original report: the
+  intrinsics are correct for this CPU, just need the compiler flag.
 
   NEW this round — all clean, zero errors:
-  src/p_avg.c, src/potential_gradient.c (new files), and the
-  expanded src/integrator.c + src/potential.c all compiled with
-  zero errors/warnings.
+  src/half_impulse.c, src/pauli_blocking.c (new files, matching
+  PAULI_BLOCKING_REPORT.md) compiled with zero errors/warnings.
 
   All previously-clean files remain clean. Non-blocking main.c
   warnings unchanged from before.
-MESSAGE: Still 1 of 25 files broken (arch_optimize.c, same AVX2 flag
-  issue as before — not yet addressed). New physics modules
-  (p_avg.c, potential_gradient.c) and integrator/potential changes
-  compile clean.
+MESSAGE: Still 1 of 25 files broken (arch_optimize.c). CMakeLists.txt
+  wiring is now done; only the missing -mavx2 -mfma compiler flag
+  remains. New half_impulse.c/pauli_blocking.c compile clean.
 ```
 
 ## Hardware Portability Notes (Written by Linux Claude)
