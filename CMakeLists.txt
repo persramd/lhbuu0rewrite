@@ -1,5 +1,10 @@
 cmake_minimum_required(VERSION 3.10)
-project(LHBUU C OBJC)
+project(LHBUU C)
+
+# Enable Objective-C only on macOS (for Metal)
+if(APPLE)
+    enable_language(OBJC)
+endif()
 
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
