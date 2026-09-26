@@ -2,12 +2,14 @@
  * drho_dr: Density Gradient Cache Implementation
  *
  * Direct port from lib/r_p_density.c lines 107-159
+ * Optimized with cache-aligned allocation for both ARM64 and x86_64
  */
 
 #include "drho_dr.h"
 #include "form_factor.h"
 #include "constants.h"
 #include "macros.h"
+#include "arch_optimize.h"
 #include <stdlib.h>
 #include <string.h>
 
@@ -34,7 +36,9 @@ DrhoDr* drho_dr_init(int n_particles, int ff_range)
                 cache->data[p][dx][dy] = malloc(cache->size * sizeof(double*));
 
                 for (int dz = 0; dz < cache->size; dz++) {
-                    cache->data[p][dx][dy][dz] = calloc(4, sizeof(double));
+                    /* Cache-aligned allocation for hot inner loop data */
+                    cache->data[p][dx][dy][dz] = cache_aligned_alloc(4 * sizeof(double));
+                    memset(cache->data[p][dx][dy][dz], 0, 4 * sizeof(double));
                 }
             }
         }
@@ -54,7 +58,7 @@ void drho_dr_free(DrhoDr *cache)
         for (int dx = 0; dx < cache->size; dx++) {
             for (int dy = 0; dy < cache->size; dy++) {
                 for (int dz = 0; dz < cache->size; dz++) {
-                    free(cache->data[p][dx][dy][dz]);
+                    aligned_free(cache->data[p][dx][dy][dz]);
                 }
                 free(cache->data[p][dx][dy]);
             }
