@@ -1,6 +1,7 @@
 #include "utils.h"
 #include <stdlib.h>
 #include <stdarg.h>
+#include <stdint.h>
 #include <math.h>
 #include <time.h>
 
