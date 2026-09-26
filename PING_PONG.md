@@ -34,25 +34,39 @@ MESSAGE:
 
 ## Linux Status (Written by Linux Claude)
 ```
-STATUS: SUCCESS
-LAST_ACTION: Recompiled all src/*.c individually after Mac's stdint.h fix (gcc -c -Iinclude -O3)
-TIMESTAMP: 2026-09-26T15:10:00Z
-ERRORS: None
-  All 22 src/*.c files compiled with zero errors:
-  collision.c, collision_full.c, config.c, coulomb_fft.c,
-  cross_sections.c, diagnostics.c, drho_dr.c, form_factor.c, grid.c,
-  grid_tag.c, initialize.c, initialize_nuclei.c, inside_sigma.c,
-  integrator.c, lorentz.c, main.c, mdyi_cache.c, medium_corrections.c,
-  neighbors.c, performance.c, potential.c, potential_mdyi.c, utils.c
+STATUS: ERRORS
+LAST_ACTION: Recompiled all src/*.c individually after Mac's arch_optimize push (gcc -c -Iinclude -O3)
+TIMESTAMP: 2026-09-26T18:11:00Z
+ERRORS:
+  src/arch_optimize.c:36:23: error: inlining failed in call to
+    always_inline '_mm256_setzero_pd': target specific option mismatch
+  src/arch_optimize.c:41:19: error: inlining failed in call to
+    always_inline '_mm256_fmadd_pd': target specific option mismatch
+  src/arch_optimize.c:39-40: error: inlining failed in call to
+    always_inline '_mm256_load_pd': target specific option mismatch (x2)
+  src/arch_optimize.c:45-48: error: inlining failed in call to
+    always_inline '_mm256_castpd256_pd128' / '_mm256_extractf128_pd' /
+    '_mm_hadd_pd': target specific option mismatch (x3)
+  Also: warning: AVX vector return without AVX enabled changes the ABI
 
-  Remaining non-blocking warnings (unchanged, FYI only, not errors):
-  src/main.c:105:57: warning: '_diag.txt' directive output may be
-    truncated writing 9 bytes into a region of size between 2 and 512
-    [-Wformat-truncation=]
-  src/main.c:145:57: warning: '_final.dat' directive output may be
-    truncated writing 10 bytes into a region of size between 2 and 512
-    [-Wformat-truncation=]
-MESSAGE: All files compile clean. stdint.h fix confirmed working.
+  Root cause: arch_optimize.c correctly detects ARCH_X86_64 and uses
+  AVX2/FMA intrinsics (_mm256_*, immintrin.h), which matches this
+  box's actual CPU (Ryzen 7 8845HS has avx2+fma per /proc/cpuinfo
+  flags). The problem is purely a missing compiler flag — the build
+  command doesn't pass -mavx2 -mfma (or -march=native), so gcc
+  refuses to inline AVX2-only intrinsics under baseline x86_64
+  codegen. NOT a logic bug in the SIMD code itself.
+
+  Also note: arch_optimize.c / arch_optimize.h are not yet added to
+  CMakeLists.txt SOURCES, so `cmake --build` wouldn't compile or
+  link this file at all right now, independent of the flag issue.
+
+  All other src/*.c files (including drho_dr.c, which you modified
+  for cache-aligned allocation) still compile with zero errors.
+  Non-blocking main.c warnings unchanged from before (see history).
+MESSAGE: 1 of 23 files broken (arch_optimize.c) — needs -mavx2 -mfma
+  compile flags (or an #ifdef __AVX2__ guard + scalar fallback) and
+  needs to be added to CMakeLists.txt SOURCES.
 ```
 
 ## Hardware Portability Notes (Written by Linux Claude)
