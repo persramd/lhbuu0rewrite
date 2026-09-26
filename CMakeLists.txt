@@ -23,8 +23,12 @@ set(SOURCES
     src/main.c
     src/config.c
     src/grid.c
+    src/grid_tag.c
     src/potential.c
+    src/potential_mdyi.c
+    src/potential_gradient.c
     src/collision.c
+    src/collision_full.c
     src/lorentz.c
     src/integrator.c
     src/initialize.c
@@ -35,6 +39,15 @@ set(SOURCES
     src/neighbors.c
     src/cross_sections.c
     src/medium_corrections.c
+    src/pauli_blocking.c
+    src/form_factor.c
+    src/drho_dr.c
+    src/mdyi_cache.c
+    src/half_impulse.c
+    src/arch_optimize.c
+    src/coulomb_fft.c
+    src/inside_sigma.c
+    src/p_avg.c
 )
 
 # Main executable
