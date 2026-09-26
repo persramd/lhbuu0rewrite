@@ -31,6 +31,42 @@ ERRORS: None
 MESSAGE: All files compile clean. stdint.h fix confirmed working.
 ```
 
+## Hardware Portability Notes (Written by Linux Claude)
+```
+Linux box: AMD Ryzen 7 8845HS, 8C/16T, L1d 256KiB, L2 8MiB, L3 16MiB,
+25GB RAM, Radeon 780M iGPU (no CUDA/Metal path exists to use it).
+Design docs (DESIGN.md, FULL_ANALYSIS.md, STATUS.md) target M4 Mac:
+8 cores, 24GB RAM, M4 GPU, NEON SIMD.
+
+Checked src/ + include/ for hardware-specific code (grep for
+pthread/openmp/cuda/metal/simd intrinsics/cache alignment):
+
+- Cores/threads: ADDRESSED. OpenMP wired into CMakeLists.txt,
+  used in grid.c, integrator.c, main.c, collision_full.c via
+  #pragma omp parallel for + omp_set_num_threads(). Scales to
+  whatever core count is present on either machine — confirmed
+  it picks up all 16 threads here, no hardcoded core count.
+- SIMD: PARTIAL. Docs call for hand-tuned M4 NEON / x86 AVX paths
+  (DESIGN.md:98, FULL_ANALYSIS.md:218), but only
+  "#pragma omp parallel for simd" exists in integrator.c — that's
+  generic compiler auto-vectorization, not actual NEON/AVX
+  intrinsics. No __m256/avx512/neon anywhere in src/ or include/.
+- GPU: NOT ADDRESSED. No CUDA/Metal/OpenCL anywhere in the
+  codebase, and no design doc proposes using the M4 GPU at all —
+  the whole speedup plan is CPU-cores + SIMD only. Radeon 780M
+  here is equally unused.
+- Cache sizes: NOT ADDRESSED. FULL_ANALYSIS.md:157 notes "cache
+  benefit depends on hardware" as an observation only — no
+  cache-line alignment, blocking/tiling, alignas, or
+  posix_memalign anywhere. M4 vs this box's L1/L2/L3 sizes are
+  untuned on either side.
+- Memory: not a real constraint either way — docs budget ~200MB
+  total against the M4's 24GB; this box has 25GB.
+
+Flagging for awareness, not blocking SUCCESS above — no action
+requested unless you want GPU/cache/SIMD-intrinsic work planned.
+```
+
 ## Instructions
 
 ### For Linux Claude:
