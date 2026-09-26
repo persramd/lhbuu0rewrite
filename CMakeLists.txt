@@ -8,7 +8,7 @@ set(CMAKE_C_STANDARD_REQUIRED ON)
 find_package(OpenMP)
 
 # Compiler flags
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wextra -O3")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wextra -O3 -march=native")
 set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -g -O0 -DDEBUG")
 
 if(OpenMP_C_FOUND)
