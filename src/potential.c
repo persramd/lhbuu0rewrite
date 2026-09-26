@@ -65,3 +65,49 @@ void potential_calculate_force(const Grid *grid, const PotentialParams *params,
         *fz -= (Vc_zp - Vc_zm) / (2.0f * grid->dx);
     }
 }
+
+/* Momentum-dependent potential gradient: ∇_p V(r,p)
+ * From legacy: grad_V_alpha_p_md() in lib/U_alpha_p_md.c
+ *
+ * This computes the gradient with respect to MOMENTUM of the
+ * momentum-dependent interaction potential. This term contributes
+ * to the POSITION update in the modified Verlet algorithm:
+ *
+ *   r(t+dt) = r(t) + v*dt + ∇_p V*dt
+ *
+ * where ∇_p V = ∂V/∂p for momentum-dependent potential V(r,p).
+ *
+ * TODO: Implement full MDYI momentum gradient calculation
+ * Currently returns zero (no momentum-dependent contribution)
+ */
+void potential_grad_momentum_dep(const Grid *grid, const PotentialParams *params,
+                                 const Particle *p, int ix, int iy, int iz,
+                                 float *gx, float *gy, float *gz) {
+    /* Initialize to zero */
+    *gx = *gy = *gz = 0.0f;
+
+    /* Return early if momentum-dependent potential disabled */
+    if (!params->enable_momentum_dep || params->C == 0.0f) {
+        return;
+    }
+
+    /* TODO: Full implementation requires:
+     * 1. Loop over neighboring particles (via grid_tag or cell lists)
+     * 2. For each pair (i,j): compute form factors f(r_ij)
+     * 3. Calculate g2 = 1 / (λ²p_f0² + |p_i - p_j|²)
+     * 4. Sum gradient: ∇_p V ∝ Σ_j f(r_ij) * g2 * (p_i - p_j)
+     * 5. Apply normalization constants
+     *
+     * See legacy lib/U_alpha_p_md.c:344-516 for reference
+     * Uses cached local_pig and g_store arrays for performance
+     */
+}
+
+float potential_momentum_dependent(const Grid *grid, const PotentialParams *params,
+                                   const Particle *p, int ix, int iy, int iz) {
+    /* TODO: Implement MDYI potential U(r,p)
+     * See legacy lib/U_alpha_p_md.c:13-161
+     * Returns momentum-dependent contribution to potential energy
+     */
+    return 0.0f;
+}
