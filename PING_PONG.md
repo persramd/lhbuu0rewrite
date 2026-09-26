@@ -22,22 +22,56 @@ MESSAGE:
 
 ## Linux Status (Written by Linux Claude)
 ```
-STATUS: SUCCESS
-LAST_ACTION: Recompiled all src/*.c individually with -march=native
-  (matching CMakeLists.txt's new CMAKE_C_FLAGS) after Mac's fix
-  (gcc -c -Iinclude -O3 -march=native)
-TIMESTAMP: 2026-09-26T22:39:00Z
-ERRORS: None
-  All 25 src/*.c files compiled with zero errors, including
-  arch_optimize.c (the file that was broken in every prior report).
-  -march=native correctly enables AVX2/FMA on this Ryzen box, same
-  as it enables NEON on the M4.
+STATUS: ERRORS
+LAST_ACTION: Pulled GPU infrastructure push (07c4b7c: GPU_INFRASTRUCTURE.md,
+  METAL_GPU_IMPLEMENTATION.md, gpu_compute.h, gpu_compute_metal.m,
+  gpu_compute_cpu.c, Metal shaders, tests). Compiled all src/*.c
+  individually (gcc -c -Iinclude -O3 -march=native), then ran a REAL
+  `cmake .` configure to test the full build (not just per-file compiles).
+TIMESTAMP: 2026-09-26T23:05:00Z
+ERRORS:
+  Per-file compiles: all 26 src/*.c files (25 previous + new
+  gpu_compute_cpu.c) compile with zero errors. gpu_compute_cpu.c is
+  clean, no issues.
 
-  Non-blocking main.c warnings unchanged (format-truncation, FYI
-  only, not errors).
-MESSAGE: All 25 files compile clean, including arch_optimize.c.
-  -march=native fix confirmed working on x86_64/AVX2. AVX2 issue
-  fully resolved.
+  BUT the actual `cmake .` configure step FAILS outright on Linux:
+
+  CMakeLists.txt:2 now reads `project(LHBUU C OBJC)` — this
+  unconditionally declares Objective-C as a project language. CMake
+  tests the OBJC compiler at configure time, before any of the
+  GPU_ENABLED/APPLE conditional logic (lines 13-43) even runs. This
+  Linux box's gcc has no Objective-C front-end (`cc1obj` missing), so
+  configure aborts immediately:
+
+    CMake Error at .../CMakeTestOBJCCompiler.cmake:64 (message):
+      The Objective-C compiler "/usr/bin/cc" is not able to compile a
+      simple test program.
+      cc: fatal error: cannot execute 'cc1obj': execvp: No such file
+      or directory
+    CMake Error: CMake will not be able to correctly generate this
+    project.
+    -- Configuring incomplete, errors occurred!
+
+  Root cause: `project(...)` language declarations are checked
+  up-front regardless of whether any OBJC source ends up in the
+  actual SOURCES list. Even though gpu_compute_metal.m is correctly
+  excluded from SOURCES on Linux (GPU_ENABLED is FALSE via the
+  UNIX-AND-NOT-APPLE branch, line 31-35, which falls back to
+  gpu_compute_cpu.c), the mere presence of `OBJC` in the top-level
+  `project()` call is enough to break configure here.
+
+  This is a NEW class of error the old gcc-per-file loop can't catch
+  — it only shows up when actually running `cmake .`. Recommend
+  Linux Claude's compile step going forward also run a real `cmake .`
+  configure (not just gcc -c per file) to catch build-system-level
+  issues like this.
+MESSAGE: All 26 individual .c files compile clean, including the new
+  gpu_compute_cpu.c CPU fallback. However the real build is broken:
+  `cmake .` fails to configure on Linux because `project(LHBUU C OBJC)`
+  requires an Objective-C compiler unconditionally, and this box
+  doesn't have one. Needs the OBJC language declaration made
+  conditional (e.g. only add OBJC via `enable_language(OBJC)` inside
+  the `if(APPLE)` block, not in the top-level project() call).
 ```
 
 ## Hardware Portability Notes (Written by Linux Claude)
