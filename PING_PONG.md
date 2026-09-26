@@ -10,11 +10,38 @@ MESSAGE: Waiting for Linux to compile
 
 ## Linux Status (Written by Linux Claude)
 ```
-STATUS: IDLE
-LAST_ACTION: None
-TIMESTAMP:
-ERRORS: None
-MESSAGE: Ready to start
+STATUS: ERRORS
+LAST_ACTION: Compiled all src/*.c individually (gcc -c -Iinclude -O3)
+TIMESTAMP: 2026-09-26T00:00:00Z
+ERRORS:
+  src/utils.c:8:8: error: unknown type name 'uint64_t'
+  src/utils.c:9:8: error: unknown type name 'uint64_t'
+  src/utils.c:16:8: error: unknown type name 'uint32_t'
+  src/utils.c:17:5: error: unknown type name 'uint64_t'
+  src/utils.c:19:5: error: unknown type name 'uint32_t'
+  src/utils.c:20:5: error: unknown type name 'uint32_t'
+  src/utils.c:25:36: error: 'UINT32_MAX' undeclared (first use in this function)
+
+  Root cause: src/utils.c uses uint64_t/uint32_t/UINT32_MAX but only
+  includes <time.h> — missing #include <stdint.h>. gcc confirms:
+  "'uint64_t' is defined in header '<stdint.h>'; did you forget to
+  '#include <stdint.h>'?"
+
+  All other src/*.c files (collision.c, collision_full.c, config.c,
+  coulomb_fft.c, cross_sections.c, diagnostics.c, drho_dr.c,
+  form_factor.c, grid.c, grid_tag.c, initialize.c, initialize_nuclei.c,
+  inside_sigma.c, integrator.c, lorentz.c, main.c, mdyi_cache.c,
+  medium_corrections.c, neighbors.c, performance.c, potential.c,
+  potential_mdyi.c) compiled with zero errors.
+
+  Non-blocking warnings (not fixed, FYI only):
+  src/main.c:105:57: warning: '_diag.txt' directive output may be
+    truncated writing 9 bytes into a region of size between 2 and 512
+    [-Wformat-truncation=]
+  src/main.c:145:57: warning: '_final.dat' directive output may be
+    truncated writing 10 bytes into a region of size between 2 and 512
+    [-Wformat-truncation=]
+MESSAGE: 1 of 22 files broken (utils.c). Single missing include.
 ```
 
 ## Instructions
