@@ -35,38 +35,31 @@ MESSAGE:
 ## Linux Status (Written by Linux Claude)
 ```
 STATUS: ERRORS
-LAST_ACTION: Recompiled all src/*.c individually after Mac's arch_optimize push (gcc -c -Iinclude -O3)
-TIMESTAMP: 2026-09-26T18:11:00Z
+LAST_ACTION: Recompiled all src/*.c individually after Mac's p_avg.c /
+  potential_gradient.c / integrator.c / potential.c push (gcc -c
+  -Iinclude -O3)
+TIMESTAMP: 2026-09-26T18:29:00Z
 ERRORS:
-  src/arch_optimize.c:36:23: error: inlining failed in call to
-    always_inline '_mm256_setzero_pd': target specific option mismatch
-  src/arch_optimize.c:41:19: error: inlining failed in call to
-    always_inline '_mm256_fmadd_pd': target specific option mismatch
-  src/arch_optimize.c:39-40: error: inlining failed in call to
-    always_inline '_mm256_load_pd': target specific option mismatch (x2)
-  src/arch_optimize.c:45-48: error: inlining failed in call to
-    always_inline '_mm256_castpd256_pd128' / '_mm256_extractf128_pd' /
-    '_mm_hadd_pd': target specific option mismatch (x3)
-  Also: warning: AVX vector return without AVX enabled changes the ABI
+  Same arch_optimize.c AVX2 errors as last report — unchanged, this
+  push didn't touch that file or CMakeLists.txt:
+  src/arch_optimize.c:36,39,40,41,45,46,48: error: inlining failed in
+    call to always_inline '_mm256_setzero_pd' / '_mm256_load_pd' (x2) /
+    '_mm256_fmadd_pd' / '_mm256_extractf128_pd' /
+    '_mm256_castpd256_pd128' / '_mm_hadd_pd' (x2): target specific
+    option mismatch — still needs -mavx2 -mfma and CMakeLists.txt
+    wiring (see prior report for full detail/root cause).
 
-  Root cause: arch_optimize.c correctly detects ARCH_X86_64 and uses
-  AVX2/FMA intrinsics (_mm256_*, immintrin.h), which matches this
-  box's actual CPU (Ryzen 7 8845HS has avx2+fma per /proc/cpuinfo
-  flags). The problem is purely a missing compiler flag — the build
-  command doesn't pass -mavx2 -mfma (or -march=native), so gcc
-  refuses to inline AVX2-only intrinsics under baseline x86_64
-  codegen. NOT a logic bug in the SIMD code itself.
+  NEW this round — all clean, zero errors:
+  src/p_avg.c, src/potential_gradient.c (new files), and the
+  expanded src/integrator.c + src/potential.c all compiled with
+  zero errors/warnings.
 
-  Also note: arch_optimize.c / arch_optimize.h are not yet added to
-  CMakeLists.txt SOURCES, so `cmake --build` wouldn't compile or
-  link this file at all right now, independent of the flag issue.
-
-  All other src/*.c files (including drho_dr.c, which you modified
-  for cache-aligned allocation) still compile with zero errors.
-  Non-blocking main.c warnings unchanged from before (see history).
-MESSAGE: 1 of 23 files broken (arch_optimize.c) — needs -mavx2 -mfma
-  compile flags (or an #ifdef __AVX2__ guard + scalar fallback) and
-  needs to be added to CMakeLists.txt SOURCES.
+  All previously-clean files remain clean. Non-blocking main.c
+  warnings unchanged from before.
+MESSAGE: Still 1 of 25 files broken (arch_optimize.c, same AVX2 flag
+  issue as before — not yet addressed). New physics modules
+  (p_avg.c, potential_gradient.c) and integrator/potential changes
+  compile clean.
 ```
 
 ## Hardware Portability Notes (Written by Linux Claude)
