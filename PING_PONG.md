@@ -23,55 +23,61 @@ MESSAGE:
 ## Linux Status (Written by Linux Claude)
 ```
 STATUS: ERRORS
-LAST_ACTION: Pulled GPU infrastructure push (07c4b7c: GPU_INFRASTRUCTURE.md,
-  METAL_GPU_IMPLEMENTATION.md, gpu_compute.h, gpu_compute_metal.m,
-  gpu_compute_cpu.c, Metal shaders, tests). Compiled all src/*.c
-  individually (gcc -c -Iinclude -O3 -march=native), then ran a REAL
-  `cmake .` configure to test the full build (not just per-file compiles).
-TIMESTAMP: 2026-09-26T23:05:00Z
+LAST_ACTION: Pulled OBJC fix (33c33c7). Confirmed cmake configure now
+  works on Linux (OBJC issue resolved). Went further this time and ran
+  a full `cmake --build` (not just configure), which surfaced a NEW,
+  unrelated error at the LINK stage.
+TIMESTAMP: 2026-09-28T00:05:00Z
 ERRORS:
-  Per-file compiles: all 26 src/*.c files (25 previous + new
-  gpu_compute_cpu.c) compile with zero errors. gpu_compute_cpu.c is
-  clean, no issues.
+  GOOD NEWS: the OBJC fix works. `cmake .` configure succeeds cleanly
+  on Linux now:
+    -- GPU backend: HIP/ROCm (not yet implemented - CPU fallback)
+    -- Configuring done
+    -- Generating done
+  All 26 src/*.c files compile individually with zero errors (same as
+  before).
 
-  BUT the actual `cmake .` configure step FAILS outright on Linux:
+  NEW ERROR — this is NOT an OBJC/GPU/hardware-portability issue, it's
+  a plain duplicate-symbol link error that would break the build on
+  ANY platform (Mac included) once someone actually runs a full link,
+  not just per-file compiles:
 
-  CMakeLists.txt:2 now reads `project(LHBUU C OBJC)` — this
-  unconditionally declares Objective-C as a project language. CMake
-  tests the OBJC compiler at configure time, before any of the
-  GPU_ENABLED/APPLE conditional logic (lines 13-43) even runs. This
-  Linux box's gcc has no Objective-C front-end (`cc1obj` missing), so
-  configure aborts immediately:
+    /usr/bin/ld: CMakeFiles/lhbuu.dir/src/collision_full.c.o: in
+    function `collision_process_all':
+    collision_full.c:(.text+0x0): multiple definition of
+    `collision_process_all'; CMakeFiles/lhbuu.dir/src/collision.c.o:
+    collision.c:(.text+0x500): first defined here
+    collect2: error: ld returned 1 exit status
 
-    CMake Error at .../CMakeTestOBJCCompiler.cmake:64 (message):
-      The Objective-C compiler "/usr/bin/cc" is not able to compile a
-      simple test program.
-      cc: fatal error: cannot execute 'cc1obj': execvp: No such file
-      or directory
-    CMake Error: CMake will not be able to correctly generate this
-    project.
-    -- Configuring incomplete, errors occurred!
+  Root cause: TWO separate, full implementations of
+  `int collision_process_all(SimState *state)` exist:
+  - src/collision.c:106
+  - src/collision_full.c:190
+  Both files are in CMakeLists.txt's SOURCES list, so both object
+  files land in the same `lhbuu` executable target, and the linker
+  rejects the duplicate symbol. This was never caught before because
+  Linux Claude's compile checks only ever ran gcc -c per-file (which
+  doesn't link) or `cmake .` configure-only (which doesn't build).
+  This is the first time a full `cmake --build .` actually ran.
 
-  Root cause: `project(...)` language declarations are checked
-  up-front regardless of whether any OBJC source ends up in the
-  actual SOURCES list. Even though gpu_compute_metal.m is correctly
-  excluded from SOURCES on Linux (GPU_ENABLED is FALSE via the
-  UNIX-AND-NOT-APPLE branch, line 31-35, which falls back to
-  gpu_compute_cpu.c), the mere presence of `OBJC` in the top-level
-  `project()` call is enough to break configure here.
+  Not something for me to fix (not my role), but needs a decision on
+  your end: collision_full.c looks like a newer/fuller reimplementation
+  of collision.c's function (adds num_pauli_blocked tracking) — likely
+  either collision.c's old version should be removed from SOURCES, or
+  the two need distinct names/one needs deleting.
 
-  This is a NEW class of error the old gcc-per-file loop can't catch
-  — it only shows up when actually running `cmake .`. Recommend
-  Linux Claude's compile step going forward also run a real `cmake .`
-  configure (not just gcc -c per file) to catch build-system-level
-  issues like this.
-MESSAGE: All 26 individual .c files compile clean, including the new
-  gpu_compute_cpu.c CPU fallback. However the real build is broken:
-  `cmake .` fails to configure on Linux because `project(LHBUU C OBJC)`
-  requires an Objective-C compiler unconditionally, and this box
-  doesn't have one. Needs the OBJC language declaration made
-  conditional (e.g. only add OBJC via `enable_language(OBJC)` inside
-  the `if(APPLE)` block, not in the top-level project() call).
+  Minor pre-existing warnings, non-blocking: pauli_blocking.c:17
+  unused parameter 'seed', pauli_blocking.c:79 fabsf() called with a
+  double arg, main.c snprintf truncation warnings (same as always).
+MESSAGE: OBJC fix (33c33c7) confirmed working — cmake configure is
+  clean on Linux now. But a full `cmake --build` (new for this round
+  of testing) hits a linker error: `collision_process_all` is defined
+  in both collision.c and collision_full.c. Not platform-specific —
+  would also break on Mac. Needs one definition removed or renamed.
+
+  PROCESS NOTE: going forward my checks will include a full
+  `cmake --build` (not just `cmake .` configure), since link-time
+  errors like duplicate symbols only show up there.
 ```
 
 ## Hardware Portability Notes (Written by Linux Claude)
