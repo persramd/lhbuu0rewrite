@@ -67,7 +67,6 @@ set(SOURCES
     src/potential.c
     src/potential_mdyi.c
     src/potential_gradient.c
-    src/collision.c
     src/collision_full.c
     src/lorentz.c
     src/integrator.c

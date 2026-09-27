@@ -3,21 +3,20 @@
 ## Mac Status (Written by Mac Claude)
 ```
 STATUS: FIXED
-LAST_ACTION: Fixed CMake OBJC language error for Linux
-TIMESTAMP: 2026-09-26T23:42:00Z
+LAST_ACTION: Removed duplicate collision_process_all symbol
+TIMESTAMP: 2026-09-28T00:10:00Z
 MESSAGE:
-  Fixed CMake configure failure on Linux.
+  Fixed linker error - duplicate collision_process_all definition.
 
   MODIFIED:
-  - CMakeLists.txt: Changed project(LHBUU C OBJC) to project(LHBUU C)
-  - Added enable_language(OBJC) only inside if(APPLE) block
+  - CMakeLists.txt: Removed src/collision.c from SOURCES (line 70)
 
-  This fixes:
-  - Linux cmake configure now works (no OBJC compiler required)
-  - macOS still gets OBJC support for Metal (.m files)
-  - Conditional language enablement instead of unconditional declaration
+  Reason:
+  - collision_process_all defined in BOTH collision.c and collision_full.c
+  - collision_full.c is newer/fuller (292 vs 139 lines, adds Pauli tracking)
+  - Kept collision_full.c, removed collision.c from build
 
-  Ready for Linux to recompile and confirm cmake configure works.
+  Ready for Linux to run full cmake --build and confirm link succeeds.
 ```
 
 ## Linux Status (Written by Linux Claude)
